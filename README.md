@@ -15,12 +15,12 @@ The extension keeps a table of 2014 → 2024 ID mappings and uses it in two ways
 
 - **Redirects legacy pages.** If you land on a 2014 page that has a known 2024 equivalent, the tab is redirected to the 2024 page. This covers clicked links, typed URLs and pasted URLs.
 - **Rewrites links in place.** Links to 2014 content on dndbeyond.com are rewritten to point at the 2024 version, including links injected later by the page (tooltips, client-side rendering). Rewritten links get a `[DDB Redirector] → 2024 version` tooltip.
-- **Per-type toggles.** Turn redirecting on or off for Spells, Monsters, Classes, Magic Items, Feats, Equipment and Species, or pause the whole extension, from the toolbar popup.
+- **Per-type toggles.** Turn redirecting on or off for Spells, Monsters, Classes, Magic Items, Feats, Equipment, Species and Backgrounds, or pause the whole extension, from the toolbar popup.
 - **Custom mappings.** Add your own 2014 → 2024 ID pairs on the options page. A custom entry with the same 2014 ID overrides a built-in one.
 
 ## Mapping coverage
 
-The built-in table in [`src/shared/mappings.ts`](src/shared/mappings.ts) is generated from D&D Beyond's public listing pages by [`scripts/build-mappings.mjs`](scripts/build-mappings.mjs). It currently covers spells, monsters, magic items, feats, equipment and species. Classes have no built-in entries yet.
+The built-in table in [`src/shared/mappings.ts`](src/shared/mappings.ts) is generated from D&D Beyond's public listing pages by [`scripts/build-mappings.mjs`](scripts/build-mappings.mjs). It currently covers spells, monsters, magic items, feats, equipment, species and backgrounds. Classes have no built-in entries yet.
 
 Coverage is partial on purpose. The script only pairs a 2014 entry with a 2024 entry when they share the same URL slug and the 2024 entry comes from a 2024 core book. Renamed, merged or removed content (for example the 2014 Goblin became the 2024 Goblin Warrior) isn't paired. A link or page with no mapping is left alone.
 
@@ -30,7 +30,7 @@ To refresh the table:
 
 ```bash
 npm run build:mappings                         # crawl everything (a few minutes), rewrite mappings.ts
-node scripts/build-mappings.mjs --types spells # crawl only some types (spells, monsters, magic-items, feats, equipment, species)
+node scripts/build-mappings.mjs --types spells # crawl only some types (spells, monsters, magic-items, feats, equipment, species, backgrounds)
 node scripts/build-mappings.mjs --types equipment,feats # comma-separate to pick several; the rest of mappings.ts is kept
 node scripts/build-mappings.mjs --use-cache    # rebuild from the last crawl, no requests
 node scripts/build-mappings.mjs --dry-run      # print the summary, don't write mappings.ts
