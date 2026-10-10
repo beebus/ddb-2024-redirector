@@ -6,7 +6,7 @@ const DDB_BASE = 'https://www.dndbeyond.com'
 
 // Regex: captures content type and numeric ID from a DDB URL
 // e.g. /spells/1992-alter-self  →  ['spells', '1992', 'alter-self']
-const DDB_URL_PATTERN = /^\/?(spells|monsters|classes|magic-items|feats)\/(\d+)-(.+)$/
+const DDB_URL_PATTERN = /^\/?(spells|monsters|classes|magic-items|feats|equipment)\/(\d+)-(.+)$/
 
 export interface ParsedDdbUrl {
   contentType: ContentType
@@ -64,6 +64,6 @@ export function resolveRedirect(
   const entry = entries.find((e) => e.id2014 === parsed.numericId)
   if (!entry) return null
 
-  // Reconstruct the URL with the 2024 ID but keep the same slug
-  return `${DDB_BASE}/${parsed.contentType}/${entry.id2024}-${parsed.slug}`
+  // Reconstruct the URL with the 2024 ID; the slug is unchanged unless the entry says otherwise
+  return `${DDB_BASE}/${parsed.contentType}/${entry.id2024}-${entry.slug2024 ?? parsed.slug}`
 }
