@@ -7,7 +7,13 @@ const USER_MAPPINGS_KEY = 'ddb_user_mappings'
 export async function getSettings(): Promise<ExtensionSettings> {
   return new Promise((resolve) => {
     chrome.storage.sync.get(SETTINGS_KEY, (result) => {
-      resolve({ ...DEFAULT_SETTINGS, ...(result[SETTINGS_KEY] ?? {}) })
+      const stored: Partial<ExtensionSettings> = result[SETTINGS_KEY] ?? {}
+      // Merge enabledTypes too, so types added in newer versions default to on for existing users
+      resolve({
+        ...DEFAULT_SETTINGS,
+        ...stored,
+        enabledTypes: { ...DEFAULT_SETTINGS.enabledTypes, ...(stored.enabledTypes ?? {}) },
+      })
     })
   })
 }

@@ -39,13 +39,15 @@ function rewriteLinks(root: Element | Document) {
     'a[href*="dndbeyond.com/magic-items/"], ' +
     'a[href*="dndbeyond.com/feats/"], ' +
     'a[href*="dndbeyond.com/equipment/"], ' +
+    'a[href*="dndbeyond.com/species/"], ' +
     // Also catch relative links
     'a[href^="/spells/"], ' +
     'a[href^="/monsters/"], ' +
     'a[href^="/classes/"], ' +
     'a[href^="/magic-items/"], ' +
     'a[href^="/feats/"], ' +
-    'a[href^="/equipment/"]'
+    'a[href^="/equipment/"], ' +
+    'a[href^="/species/"]'
   )
 
   for (const anchor of anchors) {
