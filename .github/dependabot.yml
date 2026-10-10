@@ -5,10 +5,16 @@
 
 version: 2
 updates:
-  - package-ecosystem: "npm"
+  - package-ecosystem: npm
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+    ignore:
+      # typescript-eslint requires typescript <6.1.0 and relies on the classic compiler API
+      # that TypeScript 7 (the native compiler) no longer ships. Remove this rule once
+      # typescript-eslint supports TypeScript 7.
+      - dependency-name: "typescript"
+        versions: ["7.x"]
 
   - package-ecosystem: "github-actions"
     directory: "/" # Dependabot looks for workflows in /.github/workflows
