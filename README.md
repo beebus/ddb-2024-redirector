@@ -55,6 +55,17 @@ npm run dev     # optional: Vite dev server with hot reload; the extension only 
 
 Load `dist/`, not the project root or `public/`. The manifest in `public/` points at TypeScript sources, and the build rewrites those paths.
 
+### Linting before you push
+
+GitHub runs the same checks on every push and on pull requests into `master` (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)). Run them locally first to catch failures early:
+
+```bash
+npm run lint    # ESLint over the whole project (TypeScript, Vue and the build script)
+npm run build   # type-check with vue-tsc, then build; CI runs this too
+```
+
+`npm run lint` prints nothing when everything passes, and exits with an error if it finds any lint errors, which is what makes the CI check fail. The rules are in [`eslint.config.js`](eslint.config.js). To auto-fix what can be fixed safely, run `npx eslint . --fix`.
+
 ## Project layout
 
 ```
@@ -75,12 +86,12 @@ src/
 
 ## Permissions
 
-| Permission | Why |
-| --- | --- |
+| Permission                    | Why                                                             |
+|-------------------------------|-----------------------------------------------------------------|
 | `https://www.dndbeyond.com/*` | Run the content script and watch navigations on D&D Beyond only |
-| `webNavigation` | Detect when a legacy page has finished loading |
-| `tabs` | Update the tab's URL to the 2024 page |
-| `storage` | Save your settings and custom mappings |
+| `webNavigation`               | Detect when a legacy page has finished loading                  |
+| `tabs`                        | Update the tab's URL to the 2024 page                           |
+| `storage`                     | Save your settings and custom mappings                          |
 
 ## Tech stack
 
