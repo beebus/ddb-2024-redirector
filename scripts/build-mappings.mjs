@@ -84,16 +84,26 @@ async function fetchPage(url) {
   throw new Error(`${url} -> gave up after retries`)
 }
 
+// "&amp;" must be decoded last, or "&amp;lt;" would be decoded twice and come out as "<".
 const decode = (s) =>
   s
     .replace(/<[^>]*>/g, ' ')
-    .replace(/&amp;/g, '&')
     .replace(/&#x27;|&#39;/g, "'")
     .replace(/&quot;/g, '"')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
     .replace(/\s+/g, ' ')
     .trim()
+
+/**
+ * Value of a string literal as written in mappings.ts. The generator always writes double-quoted
+ * (JSON) strings, but single-quoted ones from older hand-edited versions are still accepted.
+ */
+function parseStringLiteral(literal) {
+  if (literal.startsWith('"')) return JSON.parse(literal)
+  return literal.slice(1, -1).replace(/\\(.)/g, '$1')
+}
 
 /**
  * Pull every row out of one listing page.
@@ -108,7 +118,9 @@ function parseRows(html, type) {
     const chunk = html.slice(m.index, end)
     const idMatch = /^(\d+)-(.+)$/.exec(m[2])
     if (!idMatch) return
-    const link = new RegExp(`<a[^>]*href="/${type}/${m[2]}"[^>]*>([\\s\\S]*?)</a>`).exec(chunk)
+    // Compare hrefs as plain strings instead of building a regex from scraped slug text.
+    const rowHref = `/${type}/${m[2]}`
+    const link = [...chunk.matchAll(/<a\b[^>]*?href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g)].find((a) => a[1] === rowHref)
     const source =
       /<span class="source">([\s\S]*?)<\/span>/.exec(chunk)?.[1] ??
       /list-row-name-secondary-text">([\s\S]*?)<\/div>/.exec(chunk)?.[1] ??
@@ -116,7 +128,7 @@ function parseRows(html, type) {
     rows.push({
       id: idMatch[1],
       slug: idMatch[2],
-      name: decode(link?.[1] ?? idMatch[2]),
+      name: decode(link?.[2] ?? idMatch[2]),
       legacy: chunk.includes('aria-label="legacy"'),
       source: decode(source),
     })
@@ -175,7 +187,7 @@ function loadExisting() {
     out[t] = [...block.matchAll(/\{ id2014: '(\d+)', id2024: '(\d+)', name: ("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*') }/g)].map((m) => ({
       id2014: m[1],
       id2024: m[2],
-      name: JSON.parse(m[3].startsWith('"') ? m[3] : `"${m[3].slice(1, -1).replace(/"/g, '\\"')}"`),
+      name: parseStringLiteral(m[3]),
     }))
   }
   return out
