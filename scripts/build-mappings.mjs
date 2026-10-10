@@ -37,13 +37,14 @@ const ALL_TYPES = ['spells', 'monsters', 'classes', 'magic-items', 'feats', 'equ
 // and go in the report's "slugMatchedButNot2024" list for manual review.
 //
 // - sources: the listing shows a source book, so match on its name.
+//   Feats: the 2024 Player's Handbook, plus Eberron: Forge of the Artificer (which re-releases Aberrant Dragonmark).
 // - idRange: the spells, magic-items and equipment listings show no source, so we accept the ID block
 //   where the 2024 Player's Handbook spells / 2024 Dungeon Master's Guide items were created.
 //   Equipment: legacy IDs stop at 359, and non-legacy rows below that are items unchanged between editions.
 //   This is a heuristic, checked against the crawl; revisit if new 2024 content lands elsewhere.
 const RULES_2024 = {
   monsters: { sources: ['Monster Manual'] },
-  feats: { sources: ["Player's Handbook"] },
+  feats: { sources: ["Player's Handbook", 'Eberron: Forge of the Artificer'] },
   spells: { idRange: [2610000, 2629999] },
   'magic-items': { idRange: [9220000, 9239999] },
   equipment: { idRange: [360, 999999] },
