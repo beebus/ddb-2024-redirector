@@ -2,7 +2,7 @@
 /**
  * Builds src/shared/mappings.ts from D&D Beyond's public listing pages.
  *
- * Each listing (monsters, spells, magic items, feats) shows 2014 content with a
+ * Each listing (monsters, spells, magic items, feats, equipment) shows 2014 content with a
  * "Legacy" badge and 2024 content without one. The URL slug is the same in both
  * editions, so we pair a legacy row with a non-legacy row from a 2024 source book
  * that shares its slug. Slugs that don't pair up one-to-one are reported, not guessed.
@@ -29,22 +29,24 @@ const DELAY_MS = 500
 const USER_AGENT = 'ddb-2024-redirector mapping builder (personal use)'
 
 // Content types this script can build. Classes use slugs rather than IDs, so they're not here.
-const CRAWLABLE = ['monsters', 'spells', 'magic-items', 'feats']
-const ALL_TYPES = ['spells', 'monsters', 'classes', 'magic-items', 'feats']
+const CRAWLABLE = ['monsters', 'spells', 'magic-items', 'feats', 'equipment']
+const ALL_TYPES = ['spells', 'monsters', 'classes', 'magic-items', 'feats', 'equipment']
 
 // A non-legacy row only counts as 2024 if it passes its type's rule below. Other non-legacy
 // rows with the same slug (e.g. Monsters of the Multiverse) are 2014-era rules or unclear,
 // and go in the report's "slugMatchedButNot2024" list for manual review.
 //
 // - sources: the listing shows a source book, so match on its name.
-// - idRange: the spells and magic-items listings show no source, so we accept the ID block
+// - idRange: the spells, magic-items and equipment listings show no source, so we accept the ID block
 //   where the 2024 Player's Handbook spells / 2024 Dungeon Master's Guide items were created.
+//   Equipment: legacy IDs stop at 359, and non-legacy rows below that are items unchanged between editions.
 //   This is a heuristic, checked against the crawl; revisit if new 2024 content lands elsewhere.
 const RULES_2024 = {
   monsters: { sources: ['Monster Manual'] },
   feats: { sources: ["Player's Handbook"] },
   spells: { idRange: [2610000, 2629999] },
   'magic-items': { idRange: [9220000, 9239999] },
+  equipment: { idRange: [360, 999999] },
 }
 
 // The site mixes straight and curly apostrophes in book titles.
@@ -110,8 +112,14 @@ function parseStringLiteral(literal) {
  * Rows are either <div class="info" ... data-slug> or <div class="list-row ..." data-slug>.
  */
 function parseRows(html, type) {
-  const rowStart = /<div class="(?:info|list-row)\b[^"]*"[^>]*?data-type="([^"]+)"[^>]*?data-slug="([^"]+)"/g
-  const starts = [...html.matchAll(rowStart)].filter((m) => m[1] === type)
+  // Equipment rows carry no data-type/data-slug; the "id-slug" lives in the row's CSS class instead.
+  const rowStart =
+    type === 'equipment'
+      ? /<div class="list-row list-row-equipment list-row-equipment-(\d+-[^"\s]+)"/g
+      : /<div class="(?:info|list-row)\b[^"]*"[^>]*?data-type="([^"]+)"[^>]*?data-slug="([^"]+)"/g
+  const starts = [...html.matchAll(rowStart)]
+    .map((m) => (type === 'equipment' ? Object.assign([m[0], type, m[1]], { index: m.index }) : m))
+    .filter((m) => m[1] === type)
   const rows = []
   starts.forEach((m, i) => {
     const end = Math.min(starts[i + 1]?.index ?? html.length, m.index + 8000)
@@ -151,6 +159,56 @@ async function crawl(type) {
   return [...bySlug.values()]
 }
 
+// Equipment names often gain a qualifier in 2014 ("Acid (vial)", "Poison, Basic (vial)") that 2024 drops.
+// For legacy rows with no slug match, fall back to the name minus any parenthetical suffix.
+// Hand-verified pairs for legacy items the automatic rules can't resolve (renamed, or several 2024 candidates).
+// Format: { legacyId: 2024Id }. Each target must appear in the crawl or the script stops.
+const MANUAL_PAIRS = {
+  equipment: {
+    65: 396, // Perfume (vial) -> Perfume (not 588, a Humblewood third-party item)
+    68: 398, // Poison, Basic (vial) -> Basic Poison
+    77: 415, // Rope, Hempen (50 feet) -> Rope
+    87: 426, // Spikes, Iron (10) -> Iron Spikes
+    139: 555, // Crawler Mucus (Contact) -> Carrion Crawler Mucus
+    2: 516, // Blowgun Needles -> Needles
+    3: 510, // Crossbow Bolts -> Bolts
+    28: 476, // Bottle, Glass -> Glass Bottle
+    32: 505, // Case, Crossbow Bolt -> Crossbow Bolt Case
+    33: 518, // Case, Map or Scroll -> Map or Scroll Case
+    39: 536, // Clothes, Costume -> Costume
+    40: 539, // Clothes, Fine -> Fine Clothes
+    41: 541, // Clothes, Traveler's -> Traveler's Clothes
+    45: 519, // Flask or Tankard -> Flask
+    53: 499, // Jug or Pitcher -> Jug
+    56: 494, // Lantern, Bullseye -> Bullseye Lantern
+    57: 493, // Lantern, Hooded -> Hooded Lantern
+    62: 484, // Mirror, Steel -> Mirror
+    70: 401, // Pot, Iron -> Iron Pot
+    74: 408, // Ram, Portable -> Portable Ram
+    76: 412, // Robes -> Robe
+    89: 433, // Tent, Two-Person -> Tent
+    121: 449, // Dice Set -> Dice
+    122: 455, // Playing Card Set -> Playing Cards
+    185: 462, // Saddle, Exotic -> Exotic Saddle
+    186: 465, // Saddle, Military -> Military Saddle
+    188: 466, // Saddle, Riding -> Riding Saddle
+    189: 458, // Three-Dragon Ante Set -> Three-Dragon Ante
+    190: 453, // Dragonchess Set -> Dragonchess
+    201: 549, // Grenade, Fragmentation -> Fragmentation Grenade
+    202: 550, // Grenade, Smoke -> Smoke Grenade
+  },
+}
+
+// The 2024 URL slug can differ from the 2014 one ("grenade-smoke" -> "smoke-grenade"); record it only then.
+const toPair = (old, target) => ({
+  id2014: old.id,
+  id2024: target.id,
+  name: target.name,
+  ...(target.slug !== old.slug && { slug2024: target.slug }),
+})
+
+const baseName =(s) => normalize(s).replace(/\s*\([^)]*\)/g, '').replace(/\s+/g, ' ').trim().toLowerCase()
+
 function pair(type, rows) {
   const legacy = new Map()
   const current = new Map()
@@ -161,20 +219,46 @@ function pair(type, rows) {
   const ambiguous = []
   const unmatched = []
   const review = []
+  const fuzzy = []
+
+  const manual = MANUAL_PAIRS[type] ?? {}
+  const byId = new Map(rows.map((r) => [r.id, r]))
 
   for (const [slug, legacyRows] of legacy) {
+    if (legacyRows.length === 1 && manual[legacyRows[0].id]) {
+      const target = byId.get(String(manual[legacyRows[0].id]))
+      if (!target || target.legacy) throw new Error(`Manual pair ${legacyRows[0].id} -> ${manual[legacyRows[0].id]} not found in the ${type} crawl`)
+      pairs.push(toPair(legacyRows[0], target))
+      fuzzy.push(`${legacyRows[0].id} ${legacyRows[0].name} -> ${target.id} ${target.name} (manual)`)
+      continue
+    }
     const candidates = current.get(slug) ?? []
-    const from2024 = candidates.filter((c) => is2024(type, c))
+    let from2024 = candidates.filter((c) => is2024(type, c))
+    // Equipment's "source" is its category; use it to break ties (e.g. Amber the gemstone vs Amber the trinket).
+    if (type === 'equipment' && legacyRows.length === 1 && from2024.length > 1) {
+      const sameCategory = from2024.filter((c) => c.source === legacyRows[0].source)
+      if (sameCategory.length === 1) from2024 = sameCategory
+    }
     for (const c of candidates) if (!is2024(type, c)) review.push(`${slug}: ${legacyRows.map((r) => r.id)} -> ${c.id} (${c.source || 'no source shown'})`)
 
+    if (from2024.length === 0 && type === 'equipment' && legacyRows.length === 1) {
+      const [old] = legacyRows
+      const byName = rows.filter((c) => !c.legacy && is2024(type, c) && c.source === old.source && baseName(c.name) === baseName(old.name))
+      if (baseName(old.name) !== normalize(old.name).toLowerCase() && byName.length === 1) {
+        pairs.push(toPair(old, byName[0]))
+        fuzzy.push(`${old.id} ${old.name} -> ${byName[0].id} ${byName[0].name}`)
+        continue
+      }
+    }
+
     if (from2024.length === 0) unmatched.push({ slug, legacy: legacyRows.map((r) => `${r.id} (${r.source})`), other: candidates.map((c) => `${c.id} (${c.source})`) })
-    else if (legacyRows.length === 1 && from2024.length === 1) pairs.push({ id2014: legacyRows[0].id, id2024: from2024[0].id, name: from2024[0].name })
+    else if (legacyRows.length === 1 && from2024.length === 1) pairs.push(toPair(legacyRows[0], from2024[0]))
     else ambiguous.push({ slug, legacy: legacyRows.map((r) => `${r.id} (${r.source})`), current: from2024.map((c) => `${c.id} (${c.source})`) })
   }
 
   const sourceTally = {}
   rows.filter((r) => !r.legacy).forEach((r) => (sourceTally[r.source] = (sourceTally[r.source] ?? 0) + 1))
-  return { pairs, ambiguous, unmatched, review, sourceTally }
+  return { pairs, ambiguous, unmatched, review, fuzzy, sourceTally }
 }
 
 function loadExisting() {
@@ -184,10 +268,11 @@ function loadExisting() {
   for (const t of ALL_TYPES) {
     const key = t.includes('-') ? `'${t}'` : t
     const block = new RegExp(`\\n {2}${key}: \\[([\\s\\S]*?)\\n {2}],`).exec(text)?.[1] ?? ''
-    out[t] = [...block.matchAll(/\{ id2014: '(\d+)', id2024: '(\d+)', name: ("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*') }/g)].map((m) => ({
+    out[t] = [...block.matchAll(/\{ id2014: '(\d+)', id2024: '(\d+)', name: ("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')(?:, slug2024: "([^"]*)")? }/g)].map((m) => ({
       id2014: m[1],
       id2024: m[2],
       name: parseStringLiteral(m[3]),
+      ...(m[4] && { slug2024: m[4] }),
     }))
   }
   return out
@@ -202,7 +287,7 @@ function renderFile(mappings, stamp) {
     const key = type.includes('-') ? `'${type}'` : type
     const entries = mappings[type] ?? []
     if (entries.length === 0) return `  ${key}: [\n    ${EMPTY_NOTES[type] ?? '// None found'}\n  ],`
-    const lines = entries.map((e) => `    { id2014: '${e.id2014}', id2024: '${e.id2024}', name: ${JSON.stringify(e.name)} },`)
+    const lines = entries.map((e) => `    { id2014: '${e.id2014}', id2024: '${e.id2024}', name: ${JSON.stringify(e.name)}${e.slug2024 ? `, slug2024: ${JSON.stringify(e.slug2024)}` : ''} },`)
     return `  ${key}: [\n${lines.join('\n')}\n  ],`
   }
   return `import type { MappingTable } from './types'
@@ -214,7 +299,8 @@ function renderFile(mappings, stamp) {
  *   2014 → https://www.dndbeyond.com/monsters/17137-cambion
  *   2024 → https://www.dndbeyond.com/monsters/5194937-cambion
  *
- * The slug (e.g. "-cambion") remains the same across editions.
+ * The slug (e.g. "-cambion") usually stays the same across editions. When it doesn't
+ * (2014 "grenade-smoke" → 2024 "smoke-grenade"), the entry carries a slug2024.
  *
  * GENERATED by scripts/build-mappings.mjs (last run ${stamp}). Re-run the script
  * to refresh instead of editing by hand. The options page lets you add entries
@@ -252,6 +338,7 @@ async function main() {
       ambiguous: result.ambiguous,
       unmatched: result.unmatched,
       slugMatchedButNot2024: result.review,
+      pairedByNameOnly: result.fuzzy,
       nonLegacySources: result.sourceTally,
     }
     console.log(
