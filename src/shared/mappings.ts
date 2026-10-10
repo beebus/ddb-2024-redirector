@@ -980,6 +980,7 @@ export const BUILTIN_MAPPINGS: MappingTable = {
   ],
 
   feats: [
+    { id2014: '26817', id2024: '2186454', name: "Aberrant Dragonmark" },
     { id2014: '11', id2024: '1789100', name: "Actor" },
     { id2014: '12', id2024: '1789101', name: "Alert" },
     { id2014: '13', id2024: '1789104', name: "Athlete" },
