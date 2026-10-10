@@ -6,7 +6,7 @@ const DDB_BASE = 'https://www.dndbeyond.com'
 
 // Regex: captures content type and numeric ID from a DDB URL
 // e.g. /spells/1992-alter-self  →  ['spells', '1992', 'alter-self']
-const DDB_URL_PATTERN = /^\/?(spells|monsters|classes|magic-items|feats|equipment|species)\/(\d+)-(.+)$/
+const DDB_URL_PATTERN = /^\/?(spells|monsters|classes|magic-items|feats|equipment|species|backgrounds)\/(\d+)-(.+)$/
 
 export interface ParsedDdbUrl {
   contentType: ContentType

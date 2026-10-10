@@ -40,6 +40,7 @@ function rewriteLinks(root: Element | Document) {
     'a[href*="dndbeyond.com/feats/"], ' +
     'a[href*="dndbeyond.com/equipment/"], ' +
     'a[href*="dndbeyond.com/species/"], ' +
+    'a[href*="dndbeyond.com/backgrounds/"], ' +
     // Also catch relative links
     'a[href^="/spells/"], ' +
     'a[href^="/monsters/"], ' +
@@ -47,7 +48,8 @@ function rewriteLinks(root: Element | Document) {
     'a[href^="/magic-items/"], ' +
     'a[href^="/feats/"], ' +
     'a[href^="/equipment/"], ' +
-    'a[href^="/species/"]'
+    'a[href^="/species/"], ' +
+    'a[href^="/backgrounds/"]'
   )
 
   for (const anchor of anchors) {

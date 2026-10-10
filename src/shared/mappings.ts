@@ -1290,4 +1290,19 @@ export const BUILTIN_MAPPINGS: MappingTable = {
     { id2014: '7', id2024: '1751443', name: "Tiefling" },
     { id2014: '260828', id2024: '2048555', name: "Warforged" },
   ],
+
+  backgrounds: [
+    { id2014: '7', id2024: '406475', name: "Acolyte" },
+    { id2014: '15', id2024: '406476', name: "Artisan", slug2024: "artisan" },
+    { id2014: '13', id2024: '406477', name: "Charlatan" },
+    { id2014: '8', id2024: '406474', name: "Criminal", slug2024: "criminal" },
+    { id2014: '14', id2024: '406478', name: "Entertainer" },
+    { id2014: '34', id2024: '551252', name: "Haunted One" },
+    { id2014: '16', id2024: '406482', name: "Hermit" },
+    { id2014: '191911', id2024: '551253', name: "Investigator" },
+    { id2014: '10', id2024: '406484', name: "Noble" },
+    { id2014: '11', id2024: '406485', name: "Sage" },
+    { id2014: '18', id2024: '406486', name: "Sailor" },
+    { id2014: '12', id2024: '406488', name: "Soldier" },
+  ],
 }

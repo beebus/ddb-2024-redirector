@@ -2,7 +2,7 @@
 /**
  * Builds src/shared/mappings.ts from D&D Beyond's public listing pages.
  *
- * Each listing (monsters, spells, magic items, feats, equipment, species) shows 2014 content with a
+ * Each listing (monsters, spells, magic items, feats, equipment, species, backgrounds) shows 2014 content with a
  * "Legacy" badge and 2024 content without one. The URL slug is the same in both
  * editions, so we pair a legacy row with a non-legacy row from a 2024 source book
  * that shares its slug. Slugs that don't pair up one-to-one are reported, not guessed.
@@ -29,8 +29,8 @@ const DELAY_MS = 500
 const USER_AGENT = 'ddb-2024-redirector mapping builder (personal use)'
 
 // Content types this script can build. Classes use slugs rather than IDs, so they're not here.
-const CRAWLABLE = ['monsters', 'spells', 'magic-items', 'feats', 'equipment', 'species']
-const ALL_TYPES = ['spells', 'monsters', 'classes', 'magic-items', 'feats', 'equipment', 'species']
+const CRAWLABLE = ['monsters', 'spells', 'magic-items', 'feats', 'equipment', 'species', 'backgrounds']
+const ALL_TYPES = ['spells', 'monsters', 'classes', 'magic-items', 'feats', 'equipment', 'species', 'backgrounds']
 
 // A non-legacy row only counts as 2024 if it passes its type's rule below. Other non-legacy
 // rows with the same slug (e.g. Monsters of the Multiverse) are 2014-era rules or unclear,
@@ -38,6 +38,7 @@ const ALL_TYPES = ['spells', 'monsters', 'classes', 'magic-items', 'feats', 'equ
 //
 // - sources: the listing shows a source book, so match on its name.
 //   Feats: the 2024 Player's Handbook, plus Eberron: Forge of the Artificer (which re-releases Aberrant Dragonmark).
+//   Backgrounds: the 2024 Player's Handbook, plus Ravenloft: The Horrors Within (re-releases Haunted One and Investigator).
 //   Species: the 2024 Player's Handbook, plus the two books that re-release 2014 species
 //   (Ravenloft: The Horrors Within for Dhampir/Hexblood/Reborn; Eberron: Forge of the Artificer for Changeling/Kalashtar/Shifter/Warforged).
 // - idRange: the spells, magic-items and equipment listings show no source, so we accept the ID block
@@ -51,6 +52,7 @@ const RULES_2024 = {
   'magic-items': { idRange: [9220000, 9239999] },
   equipment: { idRange: [360, 999999] },
   species: { sources: ["Player's Handbook", 'Ravenloft: The Horrors Within', 'Eberron: Forge of the Artificer'] },
+  backgrounds: { sources: ["Player's Handbook", 'Ravenloft: The Horrors Within'] },
 }
 
 // Types where several 2014 pages can share one 2024 page (e.g. Aasimar from Volo's and from
@@ -189,6 +191,10 @@ async function crawl(type) {
 // Hand-verified pairs for legacy items the automatic rules can't resolve (renamed, or several 2024 candidates).
 // Format: { legacyId: 2024Id }. Each target must appear in the crawl or the script stops.
 const MANUAL_PAIRS = {
+  backgrounds: {
+    8: 406474, // Criminal / Spy -> Criminal
+    15: 406476, // Guild Artisan / Guild Merchant -> Artisan (2024 splits it into Artisan and Merchant)
+  },
   equipment: {
     65: 396, // Perfume (vial) -> Perfume (not 588, a Humblewood third-party item)
     68: 398, // Poison, Basic (vial) -> Basic Poison
