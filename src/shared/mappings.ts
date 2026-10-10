@@ -776,7 +776,19 @@ export const BUILTIN_MAPPINGS: MappingTable = {
   ],
 
   classes: [
-    // Class pages use slugs, not numeric IDs — add as discovered
+    { id2014: '252717', id2024: '2656866', name: "Artificer" },
+    { id2014: '9', id2024: '2190875', name: "Barbarian" },
+    { id2014: '1', id2024: '2190876', name: "Bard" },
+    { id2014: '2', id2024: '2190877', name: "Cleric" },
+    { id2014: '3', id2024: '2190878', name: "Druid" },
+    { id2014: '10', id2024: '2190879', name: "Fighter" },
+    { id2014: '11', id2024: '2190880', name: "Monk" },
+    { id2014: '4', id2024: '2190881', name: "Paladin" },
+    { id2014: '5', id2024: '2190882', name: "Ranger" },
+    { id2014: '12', id2024: '2190883', name: "Rogue" },
+    { id2014: '6', id2024: '2190884', name: "Sorcerer" },
+    { id2014: '7', id2024: '2190885', name: "Warlock" },
+    { id2014: '8', id2024: '2190886', name: "Wizard" },
   ],
 
   'magic-items': [
