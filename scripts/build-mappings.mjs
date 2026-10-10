@@ -2,7 +2,7 @@
 /**
  * Builds src/shared/mappings.ts from D&D Beyond's public listing pages.
  *
- * Each listing (monsters, spells, magic items, feats, equipment) shows 2014 content with a
+ * Each listing (monsters, spells, magic items, feats, equipment, species) shows 2014 content with a
  * "Legacy" badge and 2024 content without one. The URL slug is the same in both
  * editions, so we pair a legacy row with a non-legacy row from a 2024 source book
  * that shares its slug. Slugs that don't pair up one-to-one are reported, not guessed.
@@ -29,8 +29,8 @@ const DELAY_MS = 500
 const USER_AGENT = 'ddb-2024-redirector mapping builder (personal use)'
 
 // Content types this script can build. Classes use slugs rather than IDs, so they're not here.
-const CRAWLABLE = ['monsters', 'spells', 'magic-items', 'feats', 'equipment']
-const ALL_TYPES = ['spells', 'monsters', 'classes', 'magic-items', 'feats', 'equipment']
+const CRAWLABLE = ['monsters', 'spells', 'magic-items', 'feats', 'equipment', 'species']
+const ALL_TYPES = ['spells', 'monsters', 'classes', 'magic-items', 'feats', 'equipment', 'species']
 
 // A non-legacy row only counts as 2024 if it passes its type's rule below. Other non-legacy
 // rows with the same slug (e.g. Monsters of the Multiverse) are 2014-era rules or unclear,
@@ -38,6 +38,8 @@ const ALL_TYPES = ['spells', 'monsters', 'classes', 'magic-items', 'feats', 'equ
 //
 // - sources: the listing shows a source book, so match on its name.
 //   Feats: the 2024 Player's Handbook, plus Eberron: Forge of the Artificer (which re-releases Aberrant Dragonmark).
+//   Species: the 2024 Player's Handbook, plus the two books that re-release 2014 species
+//   (Ravenloft: The Horrors Within for Dhampir/Hexblood/Reborn; Eberron: Forge of the Artificer for Changeling/Kalashtar/Shifter/Warforged).
 // - idRange: the spells, magic-items and equipment listings show no source, so we accept the ID block
 //   where the 2024 Player's Handbook spells / 2024 Dungeon Master's Guide items were created.
 //   Equipment: legacy IDs stop at 359, and non-legacy rows below that are items unchanged between editions.
@@ -48,7 +50,12 @@ const RULES_2024 = {
   spells: { idRange: [2610000, 2629999] },
   'magic-items': { idRange: [9220000, 9239999] },
   equipment: { idRange: [360, 999999] },
+  species: { sources: ["Player's Handbook", 'Ravenloft: The Horrors Within', 'Eberron: Forge of the Artificer'] },
 }
+
+// Types where several 2014 pages can share one 2024 page (e.g. Aasimar from Volo's and from
+// Monsters of the Multiverse both go to the 2024 Aasimar). Elsewhere, a duplicate legacy slug is reported as ambiguous.
+const MANY_TO_ONE = ['species']
 
 // The site mixes straight and curly apostrophes in book titles.
 const normalize = (s) => s.replace(/[’‘]/g, "'")
@@ -113,6 +120,23 @@ function parseStringLiteral(literal) {
  * Rows are either <div class="info" ... data-slug> or <div class="list-row ..." data-slug>.
  */
 function parseRows(html, type) {
+  // The species listing is a single page of cards; each has the "id-slug" link, title, source and badge.
+  if (type === 'species') {
+    return html
+      .split('<li class="j-collapsible__item listing-card')
+      .slice(1)
+      .flatMap((card) => {
+        const idMatch = /<a href="\/species\/(\d+)-([^"#]+)"/.exec(card)
+        if (!idMatch) return []
+        return {
+          id: idMatch[1],
+          slug: idMatch[2],
+          name: decode(/listing-card__title">([\s\S]*?)<\/h3>/.exec(card)?.[1] ?? idMatch[2]),
+          legacy: card.includes('aria-label="legacy"'),
+          source: decode(/listing-card__source">([\s\S]*?)<\/div>/.exec(card)?.[1] ?? ''),
+        }
+      })
+  }
   // Equipment rows carry no data-type/data-slug; the "id-slug" lives in the row's CSS class instead.
   const rowStart =
     type === 'equipment'
@@ -253,7 +277,7 @@ function pair(type, rows) {
     }
 
     if (from2024.length === 0) unmatched.push({ slug, legacy: legacyRows.map((r) => `${r.id} (${r.source})`), other: candidates.map((c) => `${c.id} (${c.source})`) })
-    else if (legacyRows.length === 1 && from2024.length === 1) pairs.push(toPair(legacyRows[0], from2024[0]))
+    else if (from2024.length === 1 && (legacyRows.length === 1 || MANY_TO_ONE.includes(type))) legacyRows.forEach((old) => pairs.push(toPair(old, from2024[0])))
     else ambiguous.push({ slug, legacy: legacyRows.map((r) => `${r.id} (${r.source})`), current: from2024.map((c) => `${c.id} (${c.source})`) })
   }
 

@@ -1,5 +1,5 @@
 // The content types we support redirecting
-export type ContentType = 'spells' | 'monsters' | 'classes' | 'magic-items' | 'feats' | 'equipment'
+export type ContentType = 'spells' | 'monsters' | 'classes' | 'magic-items' | 'feats' | 'equipment' | 'species'
 
 // A single mapping entry: 2014 numeric ID → 2024 numeric ID
 export interface MappingEntry {
@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
     'magic-items': true,
     feats: true,
     equipment: true,
+    species: true,
   },
 }
 
@@ -37,6 +38,7 @@ export const ALL_CONTENT_TYPES: ContentType[] = [
   'magic-items',
   'feats',
   'equipment',
+  'species',
 ]
 
 export const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
@@ -46,4 +48,5 @@ export const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
   'magic-items': 'Magic Items',
   feats: 'Feats',
   equipment: 'Equipment',
+  species: 'Species',
 }
