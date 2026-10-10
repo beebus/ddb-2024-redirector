@@ -119,6 +119,10 @@ function parseStringLiteral(literal) {
   return literal.slice(1, -1).replace(/\\(.)/g, '$1')
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 /**
  * Pull every row out of one listing page.
  * Rows are either <div class="info" ... data-slug> or <div class="list-row ..." data-slug>.
@@ -126,11 +130,12 @@ function parseStringLiteral(literal) {
 function parseRows(html, type) {
   // The species and classes listings are a single page of cards; each has the "id-slug" link, title, source and badge.
   if (type === 'species' || type === 'classes') {
+    const safeType = escapeRegExp(type)
     return html
       .split('<li class="j-collapsible__item listing-card')
       .slice(1)
       .flatMap((card) => {
-        const idMatch = new RegExp(`<a href="/${type}/(\\d+)-([^"#]+)"`).exec(card)
+        const idMatch = new RegExp(`<a href="/${safeType}/(\\d+)-([^"#]+)"`).exec(card)
         if (!idMatch) return []
         return {
           id: idMatch[1],
