@@ -7,19 +7,26 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
-    "build:mappings": "node scripts/build-mappings.mjs"
+    "build:mappings": "node scripts/build-mappings.mjs",
+    "lint": "eslint ."
   },
   "dependencies": {
     "vue": "^3.5.32"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^3.0.0",
+    "@eslint/js": "^10.0.1",
     "@types/chrome": "^0.1.40",
     "@types/node": "^24.12.2",
     "@vitejs/plugin-vue": "^6.0.10",
     "@vue/tsconfig": "^0.9.1",
+    "eslint": "^10.12.0",
+    "eslint-plugin-vue": "^10.11.1",
+    "globals": "^17.13.0",
     "typescript": "~6.0.2",
+    "typescript-eslint": "^8.71.1",
     "vite": "^8.3.4",
+    "vue-eslint-parser": "^10.4.1",
     "vue-tsc": "^3.2.6"
   }
 }
