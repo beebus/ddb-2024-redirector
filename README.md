@@ -20,7 +20,7 @@ The extension keeps a table of 2014 → 2024 ID mappings and uses it in two ways
 
 ## Mapping coverage
 
-The built-in table in [`src/shared/mappings.ts`](src/shared/mappings.ts) is generated from D&D Beyond's public listing pages by [`scripts/build-mappings.mjs`](scripts/build-mappings.mjs). It currently covers spells, monsters, magic items, feats, equipment, species and backgrounds. Classes have no built-in entries yet.
+The built-in table in [`src/shared/mappings.ts`](src/shared/mappings.ts) is generated from D&D Beyond's public listing pages by [`scripts/build-mappings.mjs`](scripts/build-mappings.mjs). It currently covers spells, monsters, classes, magic items, feats, equipment, species and backgrounds.
 
 Coverage is partial on purpose. The script only pairs a 2014 entry with a 2024 entry when they share the same URL slug and the 2024 entry comes from a 2024 core book. Renamed, merged or removed content (for example the 2014 Goblin became the 2024 Goblin Warrior) isn't paired. A link or page with no mapping is left alone.
 
@@ -30,7 +30,7 @@ To refresh the table:
 
 ```bash
 npm run build:mappings                         # crawl everything (a few minutes), rewrite mappings.ts
-node scripts/build-mappings.mjs --types spells # crawl only some types (spells, monsters, magic-items, feats, equipment, species, backgrounds)
+node scripts/build-mappings.mjs --types spells # crawl only some types (spells, monsters, classes, magic-items, feats, equipment, species, backgrounds)
 node scripts/build-mappings.mjs --types equipment,feats # comma-separate to pick several; the rest of mappings.ts is kept
 node scripts/build-mappings.mjs --use-cache    # rebuild from the last crawl, no requests
 node scripts/build-mappings.mjs --dry-run      # print the summary, don't write mappings.ts

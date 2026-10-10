@@ -2,7 +2,7 @@
 /**
  * Builds src/shared/mappings.ts from D&D Beyond's public listing pages.
  *
- * Each listing (monsters, spells, magic items, feats, equipment, species, backgrounds) shows 2014 content with a
+ * Each listing (monsters, spells, classes, magic items, feats, equipment, species, backgrounds) shows 2014 content with a
  * "Legacy" badge and 2024 content without one. The URL slug is the same in both
  * editions, so we pair a legacy row with a non-legacy row from a 2024 source book
  * that shares its slug. Slugs that don't pair up one-to-one are reported, not guessed.
@@ -28,8 +28,8 @@ const BASE = 'https://www.dndbeyond.com'
 const DELAY_MS = 500
 const USER_AGENT = 'ddb-2024-redirector mapping builder (personal use)'
 
-// Content types this script can build. Classes use slugs rather than IDs, so they're not here.
-const CRAWLABLE = ['monsters', 'spells', 'magic-items', 'feats', 'equipment', 'species', 'backgrounds']
+// Content types this script can build.
+const CRAWLABLE = ['monsters', 'spells', 'classes', 'magic-items', 'feats', 'equipment', 'species', 'backgrounds']
 const ALL_TYPES = ['spells', 'monsters', 'classes', 'magic-items', 'feats', 'equipment', 'species', 'backgrounds']
 
 // A non-legacy row only counts as 2024 if it passes its type's rule below. Other non-legacy
@@ -38,6 +38,7 @@ const ALL_TYPES = ['spells', 'monsters', 'classes', 'magic-items', 'feats', 'equ
 //
 // - sources: the listing shows a source book, so match on its name.
 //   Feats: the 2024 Player's Handbook, plus Eberron: Forge of the Artificer (which re-releases Aberrant Dragonmark).
+//   Classes: the 2024 Player's Handbook, plus Eberron: Forge of the Artificer (which re-releases the Artificer).
 //   Backgrounds: the 2024 Player's Handbook, plus Ravenloft: The Horrors Within (re-releases Haunted One and Investigator).
 //   Species: the 2024 Player's Handbook, plus the two books that re-release 2014 species
 //   (Ravenloft: The Horrors Within for Dhampir/Hexblood/Reborn; Eberron: Forge of the Artificer for Changeling/Kalashtar/Shifter/Warforged).
@@ -53,6 +54,7 @@ const RULES_2024 = {
   equipment: { idRange: [360, 999999] },
   species: { sources: ["Player's Handbook", 'Ravenloft: The Horrors Within', 'Eberron: Forge of the Artificer'] },
   backgrounds: { sources: ["Player's Handbook", 'Ravenloft: The Horrors Within'] },
+  classes: { sources: ["Player's Handbook", 'Eberron: Forge of the Artificer'] },
 }
 
 // Types where several 2014 pages can share one 2024 page (e.g. Aasimar from Volo's and from
@@ -117,18 +119,23 @@ function parseStringLiteral(literal) {
   return literal.slice(1, -1).replace(/\\(.)/g, '$1')
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 /**
  * Pull every row out of one listing page.
  * Rows are either <div class="info" ... data-slug> or <div class="list-row ..." data-slug>.
  */
 function parseRows(html, type) {
-  // The species listing is a single page of cards; each has the "id-slug" link, title, source and badge.
-  if (type === 'species') {
+  // The species and classes listings are a single page of cards; each has the "id-slug" link, title, source and badge.
+  if (type === 'species' || type === 'classes') {
+    const safeType = escapeRegExp(type)
     return html
       .split('<li class="j-collapsible__item listing-card')
       .slice(1)
       .flatMap((card) => {
-        const idMatch = /<a href="\/species\/(\d+)-([^"#]+)"/.exec(card)
+        const idMatch = new RegExp(`<a href="/${safeType}/(\\d+)-([^"#]+)"`).exec(card)
         if (!idMatch) return []
         return {
           id: idMatch[1],
@@ -309,9 +316,7 @@ function loadExisting() {
   return out
 }
 
-const EMPTY_NOTES = {
-  classes: '// Class pages use slugs, not numeric IDs — add as discovered',
-}
+const EMPTY_NOTES = {}
 
 function renderFile(mappings, stamp) {
   const section = (type) => {
