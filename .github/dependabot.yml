@@ -9,6 +9,11 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+    groups:
+      # One PR per week for every npm dependency (the whole repo is frontend).
+      npm-dependencies:
+        patterns:
+          - "*"
     ignore:
       # typescript-eslint requires typescript <6.1.0 and relies on the classic compiler API
       # that TypeScript 7 (the native compiler) no longer ships. Remove this rule once
