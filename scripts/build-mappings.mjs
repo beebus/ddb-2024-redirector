@@ -57,6 +57,17 @@ const RULES_2024 = {
   classes: { sources: ["Player's Handbook", 'Eberron: Forge of the Artificer'] },
 }
 
+// When a legacy page has no match from RULES_2024, take the same-slug page from the first of these
+// books that has one (newest book first). Monsters: the 2024 Monster Manual stays the primary target.
+const FALLBACK_SOURCES = {
+  monsters: [
+    'Ravenloft: The Horrors Within', // 2026
+    'Forgotten Realms: Adventures in Faerûn', // 2025
+    'Phandelver and Below: The Shattered Obelisk', // 2023
+    'Mordenkainen Presents: Monsters of the Multiverse', // 2022
+  ],
+}
+
 // Types where several 2014 pages can share one 2024 page (e.g. Aasimar from Volo's and from
 // Monsters of the Multiverse both go to the 2024 Aasimar). Elsewhere, a duplicate legacy slug is reported as ambiguous.
 const MANY_TO_ONE = ['species']
@@ -198,6 +209,68 @@ async function crawl(type) {
 // Hand-verified pairs for legacy items the automatic rules can't resolve (renamed, or several 2024 candidates).
 // Format: { legacyId: 2024Id }. Each target must appear in the crawl or the script stops.
 const MANUAL_PAIRS = {
+  monsters: {
+    16763: 5195169, // Acolyte -> Priest Acolyte
+    16794: 5194909, // Azer -> Azer Sentinel
+    1680934: 6491398, // Nosferatu -> Vampire Nosferatu
+    1680935: 6491342, // Podling -> Bodytaker Podling
+    16817: 4831002, // Bugbear -> Bugbear Warrior
+    16821: 5194939, // Centaur -> Centaur Trooper
+    16836: 4904746, // Cult Fanatic -> Cultist Fanatic
+    16865: 5194895, // Flying Sword -> Animated Flying Sword
+    16890: 5195030, // Giant Poisonous Snake -> Giant Venomous Snake
+    16893: 4775820, // Giant Sea Horse -> Giant Seahorse
+    16904: 5195046, // Gnoll -> Gnoll Warrior
+    16907: 5195050, // Goblin -> Goblin Warrior
+    16925: 5195079, // Hobgoblin -> Hobgoblin Warrior
+    16939: 5195096, // Kobold -> Kobold Warrior
+    16955: 5195119, // Merfolk -> Merfolk Skirmisher
+    16958: 5195126, // Minotaur -> Minotaur of Baphomet
+    17000: 5194896, // Rug of Smothering -> Animated Rug of Smothering
+    17003: 5195190, // Sahuagin -> Sahuagin Warrior
+    17009: 5195199, // Sea Horse -> Seahorse
+    17013: 5195205, // Shrieker -> Shrieker Fungus
+    17035: 5195235, // Thug -> Tough
+    17038: 5195259, // Tribal Warrior -> Warrior Infantry
+    17045: 5195260, // Veteran -> Warrior Veteran
+    17090: 5194957, // Cyclops -> Cyclops Sentry
+    17100: 5194865, // Aarakocra -> Aarakocra Skirmisher
+    17107: 5194992, // Faerie Dragon (Younger) -> Faerie Dragon Youth
+    17108: 5194991, // Faerie Dragon (Older) -> Faerie Dragon Adult
+    17120: 4831017, // Bullywug -> Bullywug Warrior
+    17133: 5900660, // Drow -> Drow of Lolth
+    17134: 5900658, // Drow Elite Warrior -> Drow Elite Warrior of Lolth
+    17135: 5900659, // Drow Mage -> Drow Mage of Lolth
+    17147: 5195004, // Gas Spore -> Gas Spore Fungus
+    17176: 5195129, // Monodrone -> Modron Monodrone
+    17177: 5195132, // Tridrone -> Modron Tridrone
+    17178: 5195131, // Quadrone -> Modron Quadrone
+    17179: 5195130, // Pentadrone -> Modron Pentadrone
+    17180: 5195128, // Duodrone -> Modron Duodrone
+    17197: 5195189, // Sahuagin Priestess -> Sahuagin Priest
+    17199: 5195191, // Fire Snake -> Salamander Fire Snake
+    17203: 5195233, // Thri-kreen -> Thri-kreen Marauder
+    17212: 5194984, // Empyrean -> Empyrean (Celestial)
+    17222: 2560820, // Gazer Familiar -> Gazer (Familiar Variant)
+    17310: 2560938, // Thorny -> Thorny Vegepygmy
+    17324: 2560712, // Abjurer -> Abjurer Wizard
+    17331: 2560761, // Conjurer -> Conjurer Wizard
+    17332: 2560778, // Diviner -> Diviner Wizard
+    17333: 2560806, // Enchanter -> Enchanter Wizard
+    17334: 2560807, // Evoker -> Evoker Wizard
+    17335: 2560852, // Illusionist -> Illusionist Wizard
+    17339: 2560883, // Necromancer -> Necromancer Wizard
+    17341: 2560943, // Transmuter -> Transmuter Wizard
+    24005: 2560768, // Rothé -> Deep Rothé
+    3081118: 6491370, // Lord Soth -> Lord Soth of Sithicus
+    93832: 2560756, // Bronze Scout -> Clockwork Bronze Scout
+    93842: 2560757, // Iron Cobra -> Clockwork Iron Cobra
+    93849: 2560758, // Oaken Bolter -> Clockwork Oaken Bolter
+    93871: 2560759, // Stone Defender -> Clockwork Stone Defender
+    95330: 2560911, // Soul Monger -> Shadar-kai Soul Monger
+    95441: 2560910, // Shadow Dancer -> Shadar-kai Shadow Dancer
+    95448: 2560909, // Gloom Weaver -> Shadar-kai Gloom Weaver
+  },
   backgrounds: {
     8: 406474, // Criminal / Spy -> Criminal
     15: 406476, // Guild Artisan / Guild Merchant -> Artisan (2024 splits it into Artisan and Merchant)
@@ -277,7 +350,12 @@ function pair(type, rows) {
       const sameCategory = from2024.filter((c) => c.source === legacyRows[0].source)
       if (sameCategory.length === 1) from2024 = sameCategory
     }
-    for (const c of candidates) if (!is2024(type, c)) review.push(`${slug}: ${legacyRows.map((r) => r.id)} -> ${c.id} (${c.source || 'no source shown'})`)
+    // Nothing from the primary 2024 sources: fall back through the books above, in order.
+    for (const source of FALLBACK_SOURCES[type] ?? []) {
+      if (from2024.length > 0) break
+      from2024 = candidates.filter((c) => normalize(c.source) === normalize(source))
+    }
+    for (const c of candidates) if (!from2024.includes(c)) review.push(`${slug}: ${legacyRows.map((r) => r.id)} -> ${c.id} (${c.source || 'no source shown'})`)
 
     if (from2024.length === 0 && type === 'equipment' && legacyRows.length === 1) {
       const [old] = legacyRows
